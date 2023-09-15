@@ -21,7 +21,7 @@ psycopg2 = "^2.9.7"
 bandit = "^1.7.5"
 pytest = "^7.4.1"
 nox = "^2023.4.22"
-coverage = "^7.2.5"
+coverage = "^7.3.1"
 pytest-cov = "^4.1.0"
 
 [build-system]
