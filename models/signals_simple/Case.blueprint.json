@@ -11,6 +11,11 @@
       "type": "CORE:BlueprintAttribute",
       "attributeType": "string"
     },
+        {
+      "name": "newtype",
+      "type": "CORE:BlueprintAttribute",
+      "attributeType": "string"
+    },
     {
       "name": "components",
       "type": "CORE:BlueprintAttribute",
