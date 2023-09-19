@@ -26,6 +26,8 @@ class ExtendedBaseModel(object):
         """
         return cls.__name__[0].lower() + re.sub('([A-Z]{1})', r'_\1', cls.__name__[1:]).lower()
 
+    id = Column(Integer, primary_key=True)
+
 
 # The common source for all future SQLAlchemy classes
 Base = declarative_base(cls=ExtendedBaseModel)

@@ -31,12 +31,6 @@
       "name": "signal",
       "type": "CORE:BlueprintAttribute",
       "attributeType": "../containers/EquallySpacedSignal"
-    },
-    {
-      "name": "job",
-      "type": "CORE:BlueprintAttribute",
-      "attributeType": "JOBCORE:Job",
-      "optional": true
     }
   ]
 }
