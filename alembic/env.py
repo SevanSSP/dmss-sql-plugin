@@ -32,6 +32,10 @@ def get_url():
 def include_object(object, name, type_, reflected, compare_to):
     if type_ == "table" and reflected:
         return False
+    elif type_ == 'foreign_key_constraint' and reflected:
+        return False
+    elif name and 'id' in name and reflected:
+        return False
     else:
         return True
 
@@ -65,6 +69,10 @@ def run_migrations_online():
     and associate a connection with the context.
     """
     connectable = create_engine(get_url())
+    def process_revision_directives(context, revision, directives):
+        if not directives[0].upgrade_ops.ops:
+            directives[:] = []
+            print('No changes in schema detected.')
 
     with connectable.connect() as connection:
         context.configure(
@@ -73,6 +81,7 @@ def run_migrations_online():
             target_metadata=target_metadata,
             include_schemas=True,
             include_object=include_object,
+            process_revision_directives=process_revision_directives
 
         )
 

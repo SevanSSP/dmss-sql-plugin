@@ -86,14 +86,16 @@ class Blueprint(BaseModel):
         for attr in self.attributes:
             attr_name = attr.name
             attr_type = attr.attributeType.lower()  # Convert type to lowercase for mapping
-            if type_mapping.get(attr_type):
+
+            if type_mapping.get(attr_type): #Should catch any type that is not a blueprint
                 sqlalchemy_column_type = type_mapping.get(attr_type)
                 class_attributes[attr_name] = Column(sqlalchemy_column_type)
-            else:
+            else: #add paths to json-blueprints for children
                 file = os.path.normpath(os.path.join(os.path.dirname(self.path), attr_type))
                 children.append(file)
-        if parent:
+        if parent: #Add fk-relation to parent by using parent blueprint_id
             class_attributes[f'{parent.lower()}_id'] = Column(UUID(as_uuid=True), ForeignKey(f'{parent.lower()}.id', ondelete="cascade"), nullable=False)
+
         base_class = Base
         globals()[self.name] = type(self.name, (base_class,), class_attributes)
         revision_id = command.revision(alembic_cfg, autogenerate=True, message=f"table_{self.name}")
