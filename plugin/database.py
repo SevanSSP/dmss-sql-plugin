@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from .config import Config
+from config import Config
 
 
 engine = None
@@ -18,7 +18,7 @@ def get_db_session():
     Create an independent database session/connection per request. Use the same session through all the request and
     then close it after the request is finished.
     """
-    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=init_engine())
     session = session_factory()
     try:
         yield session

@@ -30,9 +30,9 @@ def get_url():
 
 
 def include_object(object, name, type_, reflected, compare_to):
-    if type_ == "table" and reflected:
+    if type_ == "table" and reflected: #Skip drops of tables of existing blueprints
         return False
-    elif type_ == 'foreign_key_constraint' and reflected:
+    elif type_ == 'foreign_key_constraint' and reflected: #If update of children directly, keep fk relation
         return False
     elif name and 'id' in name and reflected:
         return False
@@ -69,7 +69,7 @@ def run_migrations_online():
     and associate a connection with the context.
     """
     connectable = create_engine(get_url())
-    def process_revision_directives(context, revision, directives):
+    def process_revision_directives(context, revision, directives): #Keep empty migrations from being created
         if not directives[0].upgrade_ops.ops:
             directives[:] = []
             print('No changes in schema detected.')

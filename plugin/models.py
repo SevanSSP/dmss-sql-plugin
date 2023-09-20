@@ -1,4 +1,3 @@
-from sqlalchemy.orm import relationship
 from uuid import uuid4
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects.postgresql import UUID
@@ -6,13 +5,10 @@ from sqlalchemy.orm import declarative_base
 import re
 from pydantic import BaseModel
 from typing import List, Optional
-import json
-from alembic import autogenerate
 from alembic.config import Config
 from alembic import command
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, text
 import os
-from plugin.config import Config as dbconfig
 
 """
 Provides the declarative base for all the custom models
@@ -87,7 +83,7 @@ class Blueprint(BaseModel):
             attr_name = attr.name
             attr_type = attr.attributeType.lower()  # Convert type to lowercase for mapping
 
-            if type_mapping.get(attr_type): #Should catch any type that is not a blueprint
+            if type_mapping.get(attr_type): #Should be made to catch any type that is not a blueprint
                 sqlalchemy_column_type = type_mapping.get(attr_type)
                 class_attributes[attr_name] = Column(sqlalchemy_column_type)
             else: #add paths to json-blueprints for children
