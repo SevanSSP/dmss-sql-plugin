@@ -31,11 +31,6 @@
       "name": "timeStep",
       "type": "CORE:BlueprintAttribute",
       "attributeType": "number"
-    },
-    {
-      "name": "signal",
-      "type": "CORE:BlueprintAttribute",
-      "attributeType": "../containers/EquallySpacedSignal"
     }
   ]
 }

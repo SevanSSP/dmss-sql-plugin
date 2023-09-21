@@ -27,6 +27,11 @@
       "type": "CORE:BlueprintAttribute",
       "attributeType": "number",
       "optional": false
+    },
+    {
+      "name": "signal",
+      "type": "CORE:BlueprintAttribute",
+      "attributeType": "../containers/EquallySpacedSignal"
     }
   ]
 }

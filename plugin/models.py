@@ -1,7 +1,7 @@
 from uuid import uuid4
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 import re
 from pydantic import BaseModel
 from typing import List, Optional
@@ -41,7 +41,7 @@ class ExtendedBaseModel(object):
         not added to the first letter. Example: AnExampleThing will be given
         __tablename__ = 'an_example_thing'
         """
-        return cls.__name__[0].lower() + re.sub('([A-Z]{1})', r'_\1', cls.__name__[1:]).lower()
+        return cls.__name__.lower()
 
     id = Column(UUID(as_uuid=True), default=uuid4, primary_key=True, nullable=False,
                 server_default=text("uuid_generate_v4()"))
@@ -58,6 +58,7 @@ class Attribute(BaseModel):
     attributeType: str
     dimensions: Optional[str] = None
     contained: Optional[bool] = None
+    optional: Optional[bool] = True
 
 
 class Blueprint(BaseModel):
@@ -85,10 +86,13 @@ class Blueprint(BaseModel):
 
             if type_mapping.get(attr_type): #Should be made to catch any type that is not a blueprint
                 sqlalchemy_column_type = type_mapping.get(attr_type)
-                class_attributes[attr_name] = Column(sqlalchemy_column_type)
+                class_attributes[attr_name] = Column(sqlalchemy_column_type, nullable=attr.optional)
             else: #add paths to json-blueprints for children
                 file = os.path.normpath(os.path.join(os.path.dirname(self.path), attr_type))
                 children.append(file)
+                child_table = attr_type.split('/')[-1]
+                class_attributes[child_table] = relationship(child_table, backref=self.name, cascade="all,delete")
+
         if parent: #Add fk-relation to parent by using parent blueprint_id
             class_attributes[f'{parent.lower()}_id'] = Column(UUID(as_uuid=True), ForeignKey(f'{parent.lower()}.id', ondelete="cascade"), nullable=False)
 
