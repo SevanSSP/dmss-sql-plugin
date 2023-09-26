@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from alembic.config import Config
 from alembic import command
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, text
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, text, Table
 import os
 
 """
@@ -84,17 +84,19 @@ class Blueprint(BaseModel):
             attr_name = attr.name
             attr_type = attr.attributeType.lower()  # Convert type to lowercase for mapping
 
-            if type_mapping.get(attr_type): #Should be made to catch any type that is not a blueprint
+            if type_mapping.get(attr_type):  # Should be made to catch any type that is not a blueprint
                 sqlalchemy_column_type = type_mapping.get(attr_type)
                 class_attributes[attr_name] = Column(sqlalchemy_column_type, nullable=attr.optional)
-            else: #add paths to json-blueprints for children
+            else:  # add paths to json-blueprints for children
                 file = os.path.normpath(os.path.join(os.path.dirname(self.path), attr_type))
                 children.append(file)
                 child_table = attr_type.split('/')[-1]
                 class_attributes[child_table] = relationship(child_table, backref=self.name, cascade="all,delete")
 
-        if parent: #Add fk-relation to parent by using parent blueprint_id
-            class_attributes[f'{parent.lower()}_id'] = Column(UUID(as_uuid=True), ForeignKey(f'{parent.lower()}.id', ondelete="cascade"), nullable=False)
+        if parent:  # Add fk-relation to parent by using parent blueprint_id
+            class_attributes[f'{parent.lower()}_id'] = Column(UUID(as_uuid=True),
+                                                              ForeignKey(f'{parent.lower()}.id', ondelete="cascade"),
+                                                              nullable=False)
 
         base_class = Base
         globals()[self.name] = type(self.name, (base_class,), class_attributes)
@@ -103,3 +105,39 @@ class Blueprint(BaseModel):
         for i in children:
             child_blueprint = self._from_json(i)
             child_blueprint._generate_class(parent=self.name)
+
+    def _generate_class_m2m_rel(self, parent: str = None):
+        class_attributes = {}
+        children = []
+        for attr in self.attributes:
+            attr_name = attr.name
+            attr_type = attr.attributeType.lower()  # Convert type to lowercase for mapping
+
+            if type_mapping.get(attr_type):  # Should be made to catch any type that is not a blueprint
+                sqlalchemy_column_type = type_mapping.get(attr_type)
+                class_attributes[attr_name] = Column(sqlalchemy_column_type, nullable=attr.optional)
+            else:  # add paths to json-blueprints for children
+                file = os.path.normpath(os.path.join(os.path.dirname(self.path), attr_type))
+                children.append(file)
+                child_table = attr_type.split('/')[-1]
+                class_attributes[f'{child_table}_s'] = relationship(child_table,
+                                                                    secondary=f'{self.name}_{child_table}_asso',
+                                                                    cascade="all,delete")
+        if parent:
+            table_name = f"{parent}_{self.name.lower()}_asso"
+            globals()[table_name] = Table(
+                table_name,
+                Base.metadata,
+                Column(f"{parent}_id",
+                       ForeignKey(f"{parent}.id")),
+                Column(f"{self.name.lower()}_id",
+                       ForeignKey(f"{self.name.lower()}.id")),
+            )
+
+        base_class = Base
+        globals()[self.name] = type(self.name, (base_class,), class_attributes)
+        revision_id = command.revision(alembic_cfg, autogenerate=True, message=f"table_{self.name}")
+        command.upgrade(alembic_cfg, "head")
+        for i in children:
+            child_blueprint = self._from_json(i)
+            child_blueprint._generate_class_m2m_rel(parent=self.name.lower())
