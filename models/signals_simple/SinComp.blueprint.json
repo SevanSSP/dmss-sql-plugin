@@ -1,10 +1,7 @@
 {
-  "name": "Case",
+  "name": "SinComp",
   "type": "CORE:Blueprint",
   "description": "",
-  "extends": [
-    "CORE:NamedEntity"
-  ],
   "attributes": [
     {
       "name": "type",
@@ -12,31 +9,29 @@
       "attributeType": "string"
     },
     {
-      "name": "components",
+      "name": "A",
       "type": "CORE:BlueprintAttribute",
-      "attributeType": "./SinComp",
-      "dimensions": "*"
+      "attributeType": "number",
+      "default": 0,
+      "optional": false
     },
     {
-      "name": "duration",
+      "name": "T",
       "type": "CORE:BlueprintAttribute",
-      "attributeType": "number"
+      "attributeType": "number",
+      "default": 0,
+      "optional": false
     },
     {
-      "name": "timeStep",
+      "name": "phase",
       "type": "CORE:BlueprintAttribute",
-      "attributeType": "number"
+      "attributeType": "number",
+      "optional": false
     },
     {
       "name": "signal",
       "type": "CORE:BlueprintAttribute",
       "attributeType": "../containers/EquallySpacedSignal"
-    },
-    {
-      "name": "job",
-      "type": "CORE:BlueprintAttribute",
-      "attributeType": "JOBCORE:Job",
-      "optional": true
     }
   ]
 }
