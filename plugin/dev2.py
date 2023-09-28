@@ -1,16 +1,14 @@
-# from plugin.models import Blueprint
-#
-# blueprint = Blueprint.from_json('models/signals_simple/Case')
-# blueprint.generate_class_m2m_rel()
-#
-# blueprint = Blueprint.from_json('models/signals_simple/StudyNC')
-# blueprint.generate_class_m2m_rel()
-#
-# blueprint = Blueprint.from_json('models/signals_simple/Study')
-# blueprint.generate_class_m2m_rel()
-
 from plugin.models import initialize_database
+from plugin.crud import create_entity_from_file
+from plugin.database import get_db_session
 import os
 
+# initialize_database
 base_folder = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', "models"))
 initialize_database(base_folder=base_folder)
+
+
+# fill with data
+# session = get_db_session()
+# create_entity_from_file(db=session,
+#                         filename=os.path.normpath(os.path.join(os.path.dirname(__file__), '..', "data", "study.json")))

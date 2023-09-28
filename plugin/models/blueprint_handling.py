@@ -4,9 +4,9 @@ from typing import List, Optional
 from alembic.config import Config
 from alembic import command
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Table
+from sqlalchemy.ext.orderinglist import ordering_list
 import os
 from datetime import datetime
-import re
 
 from .base import Base
 
@@ -48,8 +48,12 @@ class Blueprint(BaseModel):
     @classmethod
     def from_json(cls, file):
         relative_path = f'{file}.blueprint.json'
-        with open(relative_path, "r") as json_file:
-            json_data = json_file.read()
+        try:
+            with open(relative_path, "r") as json_file:
+                json_data = json_file.read()
+        except FileNotFoundError:
+            return None
+
         blueprint = Blueprint.model_validate_json(json_data)
         blueprint.path = relative_path
         return blueprint
@@ -57,20 +61,48 @@ class Blueprint(BaseModel):
     def generate_models_m2m_rel(self, parent: str = None):
         class_attributes = {}
         children = []
+        data_tables = []
         for attr in self.attributes:
             attr_name = attr.name
             attr_type = attr.attributeType.lower()  # Convert type to lowercase for mapping
 
-            if type_mapping.get(attr_type):  # Should be made to catch any type that is not a blueprint
+            if type_mapping.get(attr_type) and hasattr(attr, 'dimensions') and attr.dimensions == '*':
+                # treat this as one-to-many exclusively
+                # todo: introduce an integer f_key - auto-generating sequence is not straightforward
+                sqlalchemy_data_tale_column_type = type_mapping.get(attr_type)
+
+                if attr.contained:
+                    on_delete = 'cascade'
+                else:
+                    on_delete = None
+
+                data_tables.append({
+                    'name': f'{self.name}_{attr_name}',
+                    'columns': {
+                        f'{self.name}_id': Column(f'{self.name}_id',
+                                                  ForeignKey(f'{self.name}.id', ondelete=on_delete),
+                                                  primary_key=True, nullable=False, info={"skip_pk": True}),
+                        'position': Column(Integer, nullable=False),
+                        'data': Column(sqlalchemy_data_tale_column_type, nullable=False),
+                        'id': ''
+                    }
+                })
+                class_attributes[attr_name] = relationship(f'{self.name}_{attr_name}',
+                                                           order_by=f'{self.name}_{attr_name}.position',
+                                                           collection_class=ordering_list('position'))
+
+            elif type_mapping.get(attr_type):  # Should be made to catch any type that is not a blueprint
                 sqlalchemy_column_type = type_mapping.get(attr_type)
                 class_attributes[attr_name] = Column(sqlalchemy_column_type, nullable=attr.optional)
             else:  # add paths to json-blueprints for children
                 file = os.path.normpath(os.path.join(os.path.dirname(self.path), attr_type))
-                children.append(file)
-                child_table = attr_type.split('/')[-1]
-                class_attributes[f'{child_table}_s'] = relationship(child_table,
-                                                                    secondary=f'{self.name}_{child_table}_asso',
-                                                                    cascade="all,delete")
+                child_blueprint = self.from_json(file)
+                children.append(child_blueprint)
+                child_name = child_blueprint.name
+                # todo: cascade delete on contained = True
+                class_attributes[f'{child_name}_s'] = relationship(child_name,
+                                                                   secondary=f'{self.name}_{child_name}_asso',
+                                                                   cascade="all,delete")
         if parent:
             table_name = f"{parent}_{self.name}_asso"
             if table_name in globals():
@@ -79,7 +111,6 @@ class Blueprint(BaseModel):
                     raise ValueError(f'Association table "{table_name}" already exists, but does not correspond to '
                                      f'existing version of "{self.name}"')
             else:
-                # todo: cascade delete on contained = True
                 globals()[table_name] = Table(
                     table_name,
                     Base.metadata,
@@ -97,16 +128,22 @@ class Blueprint(BaseModel):
                     if not getattr(globals()[self.name], attr_name):
                         raise ValueError(f'Attribute "{attr_name}" not found in existing version of "{self.name}"')
         else:
-            base_class = Base
-            globals()[self.name] = type(self.name, (base_class,), class_attributes)
+            globals()[self.name] = type(self.name, (Base,), class_attributes)
+            for data_table in data_tables:
+                globals()[data_table['name']] = type(data_table['name'], (Base,), data_table['columns'])
 
-        for i in children:
-            child_blueprint = self.from_json(i)
+        for child_blueprint in children:
             child_blueprint.generate_models_m2m_rel(parent=self.name)
 
     def migrate_and_upgrade(self):
         command.revision(alembic_cfg, autogenerate=True, message=f'table_{self.name}')
         command.upgrade(alembic_cfg, revision='head')
+
+    def return_model(self):
+        if self.name in globals():
+            return globals()[self.name]
+        else:
+            return None
 
 
 class Blueprints(BaseModel):
@@ -130,7 +167,8 @@ class Blueprints(BaseModel):
 
     @staticmethod
     def generate_migration_script(message: str = f'models: {datetime.now().strftime("%Y-%m-%d")}'):
-        return command.revision(alembic_cfg, autogenerate=True, message=message)
+        revision = command.revision(alembic_cfg, autogenerate=True, message=message)
+        return revision.revision
 
     @staticmethod
     def upgrade(revision='head'):

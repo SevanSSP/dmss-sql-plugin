@@ -29,15 +29,27 @@ def get_url():
     return url
 
 
+# todo: evaluate if this is still necessary
 def include_object(object, name, type_, reflected, compare_to):
-    if type_ == "table" and reflected: #Skip drops of tables of existing blueprints
+    if type_ == "table" and reflected:  # Skip drops of tables of existing blueprints
         return False
-    elif type_ == 'foreign_key_constraint' and reflected: #If update of children directly, keep fk relation
+    elif type_ == 'foreign_key_constraint' and reflected:  # If update of children directly, keep fk relation
         return False
     elif name and 'id' in name and reflected:
         return False
     else:
         return True
+
+
+def my_render_column(type_, col, autogen_context):
+    if type_ == "primary_key":
+        for i in col.columns:
+            if 'skip_pk' in i.info:
+                if i.info['skip_pk']:
+                    return None
+        return False
+    else:
+        return False
 
 
 def run_migrations_offline():
@@ -57,6 +69,7 @@ def run_migrations_offline():
         literal_binds=True,
         include_schemas=True,
         include_object=include_object,
+        render_item=my_render_column
     )
 
     with context.begin_transaction():
@@ -69,7 +82,8 @@ def run_migrations_online():
     and associate a connection with the context.
     """
     connectable = create_engine(get_url())
-    def process_revision_directives(context, revision, directives): #Keep empty migrations from being created
+
+    def process_revision_directives(context, revision, directives):  # Keep empty migrations from being created
         if not directives[0].upgrade_ops.ops:
             directives[:] = []
             print('No changes in schema detected.')
@@ -81,7 +95,8 @@ def run_migrations_online():
             target_metadata=target_metadata,
             include_schemas=True,
             include_object=include_object,
-            process_revision_directives=process_revision_directives
+            process_revision_directives=process_revision_directives,
+            render_item=my_render_column
 
         )
 
