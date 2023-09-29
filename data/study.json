@@ -30,7 +30,7 @@
 			"signal": {
 				"name": "signal",
 				"type": "AppModels:containers/EquallySpacedSignal",
-				"value": [],
+				"value": [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 1, 2 ,3, 4, 9],
 				"xname": "time",
 				"xunit": "s",
 				"xdelta": 0.1,

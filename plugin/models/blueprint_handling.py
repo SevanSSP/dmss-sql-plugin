@@ -64,6 +64,8 @@ class Blueprint(BaseModel):
         data_tables = []
         for attr in self.attributes:
             attr_name = attr.name
+            if attr_name == 'type':  # no need to store the blueprint type in the database
+                continue
             attr_type = attr.attributeType.lower()  # Convert type to lowercase for mapping
 
             if type_mapping.get(attr_type) and hasattr(attr, 'dimensions') and attr.dimensions == '*':
@@ -123,6 +125,8 @@ class Blueprint(BaseModel):
         if self.name in globals():
             for attr in self.attributes:
                 attr_name = attr.name
+                if attr_name == 'type':
+                    continue
                 attr_type = attr.attributeType.lower()
                 if type_mapping.get(attr_type):
                     if not getattr(globals()[self.name], attr_name):
@@ -142,6 +146,12 @@ class Blueprint(BaseModel):
     def return_model(self):
         if self.name in globals():
             return globals()[self.name]
+        else:
+            return None
+
+    def return_data_table_model(self, name: str):
+        if f'{self.name}_{name}' in globals():
+            return globals()[f'{self.name}_{name}']
         else:
             return None
 
