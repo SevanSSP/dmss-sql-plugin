@@ -7,6 +7,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Tabl
 from sqlalchemy.ext.orderinglist import ordering_list
 import os
 from datetime import datetime
+from sqlalchemy.sql import text
 
 from .base import Base
 
