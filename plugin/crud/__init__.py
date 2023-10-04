@@ -5,7 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from plugin.models import Blueprint
 from plugin.models.base import Base
-
+import time
 ModelType = TypeVar("ModelType", bound=Base)
 
 
@@ -34,7 +34,6 @@ def create_entity(db: Session, entity: dict, commit=True) -> dict:
             else:
                 raise NotImplementedError(f'Type {type(value)} not supported yet')
 
-
     obj_in_data = jsonable_encoder(data)
     db_obj = model(**obj_in_data)
 
@@ -42,17 +41,11 @@ def create_entity(db: Session, entity: dict, commit=True) -> dict:
         child_obj = create_entity(db, child, commit=True)
         getattr(db_obj, f'{child_obj.__table__.key}_s').append(child_obj)
 
-
     for key, value in data_table.items():
         data_table_model = resolve_model(bp, key)
-        for item in value:
-            getattr(db_obj, key).append(data_table_model(data=item))
+        data_table_objects = [data_table_model(data=item) for item in value]
+        getattr(db_obj, key).extend(data_table_objects)
 
-    # todo: getting into issues as described here:
-    # todo: https://stackoverflow.com/questions/73122511/flask-sqlalchemy-dict-object-has-no-attribute-sa-instance-state
-    # todo: Case ends up with a set of dictionaries in the instrumented lists (children of children added through
-    #  relationship)
-    print(db_obj)
     db.add(db_obj)
     if commit:
         db.commit()

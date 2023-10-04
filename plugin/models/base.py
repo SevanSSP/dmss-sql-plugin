@@ -5,7 +5,6 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, text
 import re
 
-
 """
 SQLAlchemy base model
 """

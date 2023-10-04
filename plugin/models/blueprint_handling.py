@@ -71,7 +71,6 @@ class Blueprint(BaseModel):
 
             if type_mapping.get(attr_type) and hasattr(attr, 'dimensions') and attr.dimensions == '*':
                 # treat this as one-to-many exclusively
-                # todo: introduce an integer f_key - auto-generating sequence is not straightforward
                 sqlalchemy_data_tale_column_type = type_mapping.get(attr_type)
 
                 if attr.contained:
@@ -85,14 +84,13 @@ class Blueprint(BaseModel):
                         f'{self.name}_id': Column(f'{self.name}_id',
                                                   ForeignKey(f'{self.name}.id', ondelete=on_delete),
                                                   primary_key=True, nullable=False, info={"skip_pk": True}),
-                        'position': Column(Integer, nullable=False),
-                        'data': Column(sqlalchemy_data_tale_column_type, nullable=False),
-                        'id': ''
+                        'index': Column(Integer, nullable=False, primary_key=True, info={"skip_pk": True}),
+                        'data': Column(sqlalchemy_data_tale_column_type, nullable=False)
                     }
                 })
                 class_attributes[attr_name] = relationship(f'{self.name}_{attr_name}',
-                                                           order_by=f'{self.name}_{attr_name}.position',
-                                                           collection_class=ordering_list('position'))
+                                                           order_by=f'{self.name}_{attr_name}.index',
+                                                           collection_class=ordering_list('index'))
 
             elif type_mapping.get(attr_type):  # Should be made to catch any type that is not a blueprint
                 sqlalchemy_column_type = type_mapping.get(attr_type)
@@ -104,10 +102,10 @@ class Blueprint(BaseModel):
                 child_name = child_blueprint.name
                 # todo: cascade delete on contained = True
                 class_attributes[f'{child_name}_s'] = relationship(child_name,
-                                                                   secondary=f'{self.name}_{child_name}_asso',
+                                                                   secondary=f'{self.name}_{child_name}_map',
                                                                    cascade="all,delete")
         if parent:
-            table_name = f"{parent}_{self.name}_asso"
+            table_name = f"{parent}_{self.name}_map"
             if table_name in globals():
                 existing_cols = [c.name for c in globals()[table_name].columns]
                 if f"{parent}_id" not in existing_cols or f"{self.name}_id" not in existing_cols:
