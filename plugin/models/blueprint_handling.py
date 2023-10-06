@@ -1,6 +1,6 @@
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, TypeVar, Type
 from alembic.config import Config
 from alembic import command
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Table
@@ -85,7 +85,8 @@ class Blueprint(BaseModel):
                                                   ForeignKey(f'{self.name}.id', ondelete=on_delete),
                                                   primary_key=True, nullable=False, info={"skip_pk": True}),
                         'index': Column(Integer, nullable=False, primary_key=True, info={"skip_pk": True}),
-                        'data': Column(sqlalchemy_data_tale_column_type, nullable=False)
+                        'data': Column(sqlalchemy_data_tale_column_type, nullable=False),
+                        'id': None
                     }
                 })
                 class_attributes[attr_name] = relationship(f'{self.name}_{attr_name}',
@@ -182,3 +183,25 @@ class Blueprints(BaseModel):
     @staticmethod
     def upgrade(revision='head'):
         command.upgrade(alembic_cfg, revision=revision)
+
+
+ModelType = TypeVar("ModelType", bound=Base)
+
+
+def resolve_blueprint(entity_type: str) -> Blueprint:
+    blueprint_path = entity_type.split(':')[1]
+    base_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'models'))
+    return Blueprint.from_json(os.path.join(base_path, blueprint_path))
+
+
+def resolve_model(blueprint: Blueprint, data_table_name: str = None) -> Type[ModelType]:
+    if not data_table_name:
+        if not blueprint.return_model():
+            blueprint.generate_models_m2m_rel()
+
+        return blueprint.return_model()
+    else:
+        if not blueprint.return_data_table_model(data_table_name):
+            blueprint.generate_models_m2m_rel()
+
+        return blueprint.return_data_table_model(data_table_name)
