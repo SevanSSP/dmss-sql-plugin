@@ -13,6 +13,7 @@ def create_entity(db: Session, entity: dict, commit=True) -> dict:
 
     data_table = {}
     children = []
+    children_rel_names = []
     data = dict()
     for key, value in entity.items():
         attr = [attr for attr in bp.attributes if attr.name == key][0]
@@ -27,17 +28,19 @@ def create_entity(db: Session, entity: dict, commit=True) -> dict:
         else:
             if isinstance(value, list):
                 children.extend(value)
+                [children_rel_names.append(key) for _ in value]
             elif isinstance(value, dict):
                 children.append(value)
+                children_rel_names.append(key)
             else:
                 raise NotImplementedError(f'Type {type(value)} not supported yet')
 
     obj_in_data = jsonable_encoder(data)
     db_obj = model(**obj_in_data)
 
-    for child in children:
+    for child, rel_name in zip(children,  children_rel_names):
         child_obj = create_entity(db, child, commit=True)
-        getattr(db_obj, f'{child_obj.__table__.key}_s').append(child_obj)
+        getattr(db_obj, rel_name).append(child_obj)
 
     for key, value in data_table.items():
         data_table_model = resolve_model(bp, key)

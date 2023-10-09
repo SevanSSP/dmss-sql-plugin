@@ -5,6 +5,7 @@
 			"name": "case1",
 			"type": "AppModels:signals_simple/Case",
 			"description": "",
+			"newAttribute": 32,
 			"duration": 100,
 			"timeStep": 0.1,
 			"components": [

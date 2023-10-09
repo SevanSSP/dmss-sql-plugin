@@ -102,7 +102,7 @@ class Blueprint(BaseModel):
                 children.append(child_blueprint)
                 child_name = child_blueprint.name
                 # todo: cascade delete on contained = True
-                class_attributes[f'{child_name}_s'] = relationship(child_name,
+                class_attributes[f'{attr_name}'] = relationship(child_name,
                                                                    secondary=f'{self.name}_{child_name}_map',
                                                                    cascade="all,delete")
         if parent:
