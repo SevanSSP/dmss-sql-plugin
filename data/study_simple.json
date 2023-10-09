@@ -1,0 +1,12 @@
+{
+	"type": "AppModels:signals_simple/Study",
+	"cases": [
+		{
+			"name": "case1",
+			"type": "AppModels:signals_simple/Case",
+			"description": "",
+			"duration": 100,
+			"timeStep": 0.1
+		}
+	]
+}

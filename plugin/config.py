@@ -7,4 +7,4 @@ class Config(BaseSettings):
     """
     Application configuration
     """
-    SQLALCHEMY_DATABASE_URI: str = Field(' ', validation_alias='SQLALCHEMY_DATABASE_URI')
+    SQLALCHEMY_DATABASE_URI: str = Field('', validation_alias='SQLALCHEMY_DATABASE_URI')
