@@ -7,6 +7,7 @@ from plugin.models import Blueprint, resolve_blueprint, resolve_model
 from plugin.models.base import Base
 import time
 
+
 def create_entity(db: Session, entity: dict, commit=True) -> dict:
     bp = resolve_blueprint(entity['type'])
     model = resolve_model(bp)
@@ -38,7 +39,7 @@ def create_entity(db: Session, entity: dict, commit=True) -> dict:
     obj_in_data = jsonable_encoder(data)
     db_obj = model(**obj_in_data)
 
-    for child, rel_name in zip(children,  children_rel_names):
+    for child, rel_name in zip(children, children_rel_names):
         child_obj = create_entity(db, child, commit=True)
         getattr(db_obj, rel_name).append(child_obj)
 
