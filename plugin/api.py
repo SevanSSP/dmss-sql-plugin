@@ -139,6 +139,43 @@ def create_entity(entity: dict, return_all: bool = False, session: Session = Dep
     new_obj = create_entity_recursive(entity, True, session)
     #Re-use get_endpoint to fetch all nested objects
     if return_all:
-        new_id = create_entity_recursive(entity, True, session)['id']
+        new_id = new_obj['id']
         return get_data_by_id(id=new_id, all_data=True, session=session)
     return new_obj
+
+
+@router.delete('/{id}', response_model=Any)
+def delete_data_by_id(id: UUID, table: str = None,
+                   session: Session = Depends(get_db_session)):
+    engine = session.get_bind()
+    metadata_obj = MetaData()
+    metadata_obj.reflect(bind=engine)
+
+    allowed_tables = [i for i in metadata_obj.tables if
+                      not (i.endswith("_map") or i.endswith("_value") or i == 'alembic_version')]
+    if table:
+        if table not in allowed_tables:
+            raise HTTPException(status_code=404, detail=f"Could not find table {table}")
+        else:
+            allowed_tables = [table]
+
+    for table in allowed_tables:
+        query = text(
+            f'SELECT * FROM public."{table}" WHERE id = \'{id}\';'
+        )
+        result = session.execute(query).first()
+        if result:
+            for root, _, files in os.walk(os.path.join(os.path.dirname(__file__), '..', 'models')):
+
+                if f'{table}.blueprint.json' in files:
+                    # Resolve model from table
+                    bp = Blueprint.from_json(os.path.join(root, table))
+                    model = resolve_model(bp)
+
+                    # Get top level data
+                    obj = session.query(model).get(id)
+                    session.delete(obj)
+                    session.commit()
+                    session.flush()
+                    return jsonable_encoder(f"Successfully deleted {model.__name__}'{id}'")
+    raise HTTPException(status_code=404, detail=f"Could not find ID {id}")

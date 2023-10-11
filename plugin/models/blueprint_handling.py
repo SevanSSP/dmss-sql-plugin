@@ -45,7 +45,7 @@ class Blueprint(BaseModel):
     description: str
     attributes: Optional[List[Attribute]] = None
     path: str = None
-
+    contained: bool = False
     @classmethod
     def from_json(cls, file):
         relative_path = f'{file}.blueprint.json'
@@ -59,7 +59,7 @@ class Blueprint(BaseModel):
         blueprint.path = relative_path
         return blueprint
 
-    def generate_models_m2m_rel(self, parent: str = None):
+    def generate_models_m2m_rel(self, parent: str = None, parent_contained: bool = False):
         class_attributes = {}
         children = []
         data_tables = []
@@ -91,7 +91,8 @@ class Blueprint(BaseModel):
                 })
                 class_attributes[attr_name] = relationship(f'{self.name}_{attr_name}',
                                                            order_by=f'{self.name}_{attr_name}.index',
-                                                           collection_class=ordering_list('index'))
+                                                           collection_class=ordering_list('index'),
+                                                           cascade="all, delete" if (attr.contained or parent_contained) else "save-update")
 
             elif type_mapping.get(attr_type):  # Should be made to catch any type that is not a blueprint
                 sqlalchemy_column_type = type_mapping.get(attr_type)
@@ -99,12 +100,13 @@ class Blueprint(BaseModel):
             else:  # add paths to json-blueprints for children
                 file = os.path.normpath(os.path.join(os.path.dirname(self.path), attr_type))
                 child_blueprint = self.from_json(file)
+                if attr.contained:
+                    child_blueprint.contained = True
                 children.append(child_blueprint)
                 child_name = child_blueprint.name
-                # todo: cascade delete on contained = True
                 class_attributes[f'{attr_name}'] = relationship(child_name,
                                                                    secondary=f'{self.name}_{child_name}_map',
-                                                                   cascade="all,delete")
+                                                                   cascade="all, delete" if (attr.contained or parent_contained) else "save-update")
         if parent:
             table_name = f"{parent}_{self.name}_map"
             if table_name in globals():
@@ -137,7 +139,7 @@ class Blueprint(BaseModel):
                 globals()[data_table['name']] = type(data_table['name'], (Base,), data_table['columns'])
 
         for child_blueprint in children:
-            child_blueprint.generate_models_m2m_rel(parent=self.name)
+            child_blueprint.generate_models_m2m_rel(parent=self.name, parent_contained=child_blueprint.contained)
 
     def migrate_and_upgrade(self):
         command.revision(alembic_cfg, autogenerate=True, message=f'table_{self.name}')
