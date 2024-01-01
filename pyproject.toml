@@ -8,7 +8,7 @@ packages = [{include = "plugin"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-SQLAlchemy = "^2.0.21"
+SQLAlchemy = "^2.0.24"
 alembic = "^1.12.0"
 pydantic = "^2.3.0"
 fastapi = "^0.103.1"
